@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪刀石頭布對決！終極動態線上版</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+    <!-- SVG Sprite 定義庫 (使用跨瀏覽器安全的零尺寸隱藏，避免 display:none 導致參照失效) -->
+    <svg id="svg-sprite" aria-hidden="true" style="position:absolute; width:0; height:0; overflow:hidden; pointer-events:none;"></svg>
+
+    <!-- 背景動態粒子畫布 -->
+    <canvas id="bg-particles"></canvas>
+
+    <div id="game-container">
+        <!-- 步驟 1：輸入名稱 -->
+        <div id="screen-name" class="screen active">
+            <h1 class="hero-title">
+                <span class="svg-icon title-icon"><svg><use href="#icon-swords"></use></svg></span>
+                <span>剪刀石頭布 終極對決</span>
+                <span class="svg-icon title-icon"><svg><use href="#icon-shield"></use></svg></span>
+            </h1>
+            <p class="subtitle">踏入冒險旅途前，請先留下你的名號</p>
+            <div class="input-glow-wrapper">
+                <input type="text" id="player-name" placeholder="請輸入冒險者名稱 (留空預設: 無名英雄)" maxlength="16" autofocus>
+            </div>
+            <div class="screen-footer center">
+                <button class="btn-primary" onclick="submitName()">
+                    <span>踏上征途</span>
+                    <span class="svg-icon btn-svg"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 步驟 1.5：選擇遊戲模式 -->
+        <div id="screen-mode-type" class="screen">
+            <button class="btn-back" onclick="goBack('screen-mode-type')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>上一步</span>
+            </button>
+            <h2><span class="svg-icon header-svg"><svg><use href="#icon-gamepad"></use></svg></span> 選擇遊戲模式</h2>
+            <div class="mode-options">
+                <button class="mode-btn" onclick="setGameMode('pvn')">
+                    <span class="svg-icon mode-svg"><svg><use href="#icon-robot"></use></svg></span>
+                    <div class="mode-btn-text">
+                        <strong>單機對戰電腦 (PvN)</strong>
+                        <small>自訂 AI 強度、職業與裝備配置</small>
+                    </div>
+                </button>
+                <button class="mode-btn mode-btn-highlight" onclick="setGameMode('pvp_online')">
+                    <span class="svg-icon mode-svg"><svg><use href="#icon-globe"></use></svg></span>
+                    <div class="mode-btn-text">
+                        <strong>線上房間對戰 (PvP)</strong>
+                        <small>即時雲端同步，與真人玩家展開對決</small>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 線上房間大廳 -->
+        <div id="screen-online-lobby" class="screen">
+            <button class="btn-back" onclick="goBack('screen-online-lobby')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>上一步</span>
+            </button>
+            <h2><span class="svg-icon header-svg"><svg><use href="#icon-globe"></use></svg></span> 線上對戰大廳</h2>
+            <div class="lobby-box">
+                <button class="btn-create-room" onclick="createOnlineRoom()">
+                    <span class="svg-icon btn-svg"><svg><use href="#icon-home"></use></svg></span>
+                    <span>創建新房間 (Host)</span>
+                </button>
+                <div class="join-room-panel">
+                    <input type="text" id="room-code-input" placeholder="輸入 4 碼房號" maxlength="4">
+                    <button onclick="joinOnlineRoom()">
+                        <span class="svg-icon btn-svg"><svg><use href="#icon-door"></use></svg></span>
+                        <span>加入房間</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 房間等候室 -->
+        <div id="screen-room-waiting" class="screen">
+            <button class="btn-back" onclick="goBack('screen-room-waiting')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>離開房間</span>
+            </button>
+            <h2><span class="svg-icon header-svg spin-slow"><svg><use href="#icon-hourglass"></use></svg></span> 等候房間連線</h2>
+            <div class="room-code-card">
+                <p class="room-code-label">您的專屬房號</p>
+                <div id="display-room-code" class="room-code-digits">----</div>
+            </div>
+            <div id="room-status-text" class="status-pulse">正在等待連線...</div>
+            <button id="btn-start-room-game" class="btn-highlight-solid" style="display: none;" onclick="hostStartGame()">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-swords"></use></svg></span>
+                <span>設定局數並開始！</span>
+            </button>
+        </div>
+
+        <!-- 步驟 2：自訂義對局設定 -->
+        <div id="screen-custom" class="screen">
+            <button class="btn-back" onclick="goBack('screen-custom')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>上一步</span>
+            </button>
+            <h2 id="custom-setting-title"><span class="svg-icon header-svg"><svg><use href="#icon-sliders"></use></svg></span> 自訂義對局設定</h2>
+            
+            <div class="setting-group">
+                <label for="custom-target-wins">
+                    <span class="svg-icon setting-svg"><svg><use href="#icon-target"></use></svg></span>
+                    <span>目標勝利數 (5 ~ 100 局)：</span>
+                </label>
+                <div style="display:flex; align-items:center;">
+                    <input type="number" id="custom-target-wins" min="5" max="100" value="5" class="input-number">
+                    <span id="win-error-msg" class="error-tip"></span>
+                </div>
+            </div>
+
+            <!-- PvN 專用設定 -->
+            <div id="pvn-settings-container">
+                <div class="setting-group slider-group">
+                    <label>
+                        <span class="svg-icon setting-svg"><svg><use href="#icon-userShield"></use></svg></span>
+                        <span>對手職業：</span>
+                    </label>
+                    <div class="switch-container active" onclick="toggleSwitch('hasChar')">
+                        <span class="switch-label">無</span>
+                        <div class="switch-track" id="switch-hasChar"><div class="switch-thumb"></div></div>
+                        <span class="switch-label">有</span>
+                    </div>
+                </div>
+                <div class="setting-group slider-group">
+                    <label>
+                        <span class="svg-icon setting-svg"><svg><use href="#icon-bag"></use></svg></span>
+                        <span>對手裝備：</span>
+                    </label>
+                    <div class="switch-container active" onclick="toggleSwitch('hasEquip')">
+                        <span class="switch-label">無</span>
+                        <div class="switch-track" id="switch-hasEquip"><div class="switch-thumb"></div></div>
+                        <span class="switch-label">有</span>
+                    </div>
+                </div>
+                <div class="setting-group slider-group">
+                    <label>
+                        <span class="svg-icon setting-svg"><svg><use href="#icon-cpu"></use></svg></span>
+                        <span>對手強度：</span>
+                    </label>
+                    <div class="switch-container active" onclick="toggleSwitch('isStrong')">
+                        <span class="switch-label">弱</span>
+                        <div class="switch-track" id="switch-isStrong"><div class="switch-thumb"></div></div>
+                        <span class="switch-label">強</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-footer end">
+                <button class="btn-primary" onclick="confirmCustomMatch()">
+                    <span>下一步</span>
+                    <span class="svg-icon btn-svg"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 步驟 3：選擇職業 -->
+        <div id="screen-char" class="screen">
+            <button class="btn-back" onclick="goBack('screen-char')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>上一步</span>
+            </button>
+            <h2 id="char-screen-title"><span class="svg-icon header-svg"><svg><use href="#icon-shield"></use></svg></span> 選擇職業</h2>
+            <div id="char-list" class="grid-5x12"></div>
+            <div class="screen-footer end">
+                <button id="btn-next-char" class="btn-primary" disabled onclick="confirmCharSelection()">
+                    <span>下一步</span>
+                    <span class="svg-icon btn-svg"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 步驟 4：挑選裝備系列 -->
+        <div id="screen-equip-prefix" class="screen">
+            <button class="btn-back" onclick="goBack('screen-equip-prefix')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>上一步</span>
+            </button>
+            <h2 id="prefix-screen-title"><span class="svg-icon header-svg"><svg><use href="#icon-bag"></use></svg></span> 挑選裝備系列</h2>
+            <div id="equip-prefix-list" class="grid-4x4"></div>
+            <div class="screen-footer end">
+                <button id="btn-next-prefix" class="btn-primary" disabled onclick="confirmPrefixSelection()">
+                    <span>下一步</span>
+                    <span class="svg-icon btn-svg"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 步驟 5：選擇具體裝備 -->
+        <div id="screen-equip-detail" class="screen">
+            <button class="btn-back" onclick="goBack('screen-equip-detail')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>上一步</span>
+            </button>
+            <h2 id="equip-detail-title"><span class="svg-icon header-svg"><svg><use href="#icon-swords"></use></svg></span> 選擇具體裝備</h2>
+            <div id="equip-detail-list" class="grid-4x6"></div>
+            <div class="screen-footer end">
+                <button id="btn-next-equip" class="btn-primary" disabled onclick="proceedAfterSetup()">
+                    <span>完成配置</span>
+                    <span class="svg-icon btn-svg"><svg><use href="#icon-check"></use></svg></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 等待對手配置 -->
+        <div id="screen-guest-waiting" class="screen">
+            <button class="btn-back" onclick="goBack('screen-guest-waiting')">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                <span>離開房間</span>
+            </button>
+            <h2><span class="svg-icon header-svg spin-slow"><svg><use href="#icon-hourglass"></use></svg></span> 等候對手配置中...</h2>
+            <p class="status-pulse" style="margin: 35px 0; font-size: 18px;">您已完成職業與裝備選擇！請等待對手完成配置...</p>
+        </div>
+
+        <!-- 步驟 5.5：倒數畫面 -->
+        <div id="screen-countdown" class="screen">
+            <h2 style="color: #aaa; margin-top: 30px;">即將進入戰場</h2>
+            <div class="countdown-stage">
+                <div id="countdown-ring" class="countdown-ring"></div>
+                <div id="countdown-number" class="countdown-display">3</div>
+            </div>
+            <p id="countdown-tip" class="status-pulse">準備迎戰！</p>
+        </div>
+
+        <!-- 步驟 6：戰鬥畫面 -->
+        <div id="screen-battle" class="screen">
+            <div class="scoreboard">
+                <div class="combatant-panel player-panel">
+                    <h3 id="p-name-display">玩家1</h3>
+                    <div id="p-class-eq" class="class-eq-badge">職業 / 裝備</div>
+                    <div class="score" id="p-score">0</div>
+                    <div class="win-progress-track">
+                        <div class="win-progress-fill player-fill" id="p-progress-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="vs-badge">
+                    <div class="vs-swords svg-icon"><svg><use href="#icon-swords"></use></svg></div>
+                    <div class="vs-text">VS</div>
+                    <span id="target-win-display" class="target-badge">目標: 5 勝</span>
+                </div>
+                <div class="combatant-panel enemy-panel">
+                    <h3 id="c-name-display">對手</h3>
+                    <div id="c-class-eq" class="class-eq-badge">職業 / 裝備</div>
+                    <div class="score" id="c-score">0</div>
+                    <div class="win-progress-track">
+                        <div class="win-progress-fill enemy-fill" id="c-progress-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="battle-arena" id="battle-arena">
+                <div id="vfx-overlay" class="vfx-overlay"></div>
+
+                <div class="action-icon-wrapper" id="p-wrapper">
+                    <div class="aura-ring" id="p-aura"></div>
+                    <div id="p-action" class="action-icon"></div>
+                </div>
+
+                <div class="arena-center-flare" id="arena-flare"></div>
+
+                <div class="action-icon-wrapper" id="c-wrapper">
+                    <div class="aura-ring" id="c-aura"></div>
+                    <div id="c-action" class="action-icon"></div>
+                </div>
+            </div>
+
+            <div id="pvp-waiting-msg" class="status-pulse" style="display:none; margin-bottom: 16px;">
+                <span class="svg-icon btn-svg spin-slow"><svg><use href="#icon-hourglass"></use></svg></span>
+                <span>已出拳！等待對手出拳中...</span>
+            </div>
+
+            <div class="action-buttons" id="action-buttons-container">
+                <button class="btn-action" onclick="playRound('剪刀')">
+                    <span class="svg-icon hand-btn-svg"><svg><use href="#icon-scissors"></use></svg></span>
+                    <span>剪刀</span>
+                </button>
+                <button class="btn-action" onclick="playRound('石頭')">
+                    <span class="svg-icon hand-btn-svg"><svg><use href="#icon-rock"></use></svg></span>
+                    <span>石頭</span>
+                </button>
+                <button class="btn-action" onclick="playRound('布')">
+                    <span class="svg-icon hand-btn-svg"><svg><use href="#icon-paper"></use></svg></span>
+                    <span>布</span>
+                </button>
+            </div>
+
+            <div id="battle-log"></div>
+        </div>
+
+        <!-- 步驟 7：結算畫面 -->
+        <div id="screen-result" class="screen">
+            <div id="result-icon-box" class="result-icon-box"></div>
+            <h1 id="result-title">遊戲結束</h1>
+            <p id="result-desc" class="result-desc"></p>
+            <button class="btn-primary" onclick="resetGame()">
+                <span class="svg-icon btn-svg"><svg><use href="#icon-refresh"></use></svg></span>
+                <span>返回模式選擇</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 腳本引入 -->
+    <script src="data.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
