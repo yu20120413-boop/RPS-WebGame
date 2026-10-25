@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>星際戰術猜拳 // TACTICAL RPS SYSTEM</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script defer src="audio.js"></script>
+    <script defer src="data.js"></script>
+    <script defer src="game.js"></script>
+</head>
+<body>
+    <svg id="svg-sprite" aria-hidden="true" style="position:absolute; width:0; height:0; overflow:hidden; pointer-events:none;"></svg>
+    <canvas id="bg-particles" aria-hidden="true"></canvas>
+
+    <div id="scifi-vfx-stage" class="scifi-vfx-stage" aria-hidden="true">
+        <div class="vfx-layer vfx-attack-layer">
+            <div class="red-shockwave-ring"></div>
+            <div class="red-shockwave-ring delay-ring"></div>
+        </div>
+        <div class="vfx-layer vfx-overload-layer">
+            <div class="overload-scanline"></div>
+            <div class="overload-hud-brackets"></div>
+            <div class="overload-alert-banner">
+                <span class="overload-sub">WARNING // LIMITER RELEASED</span>
+                <strong class="overload-title">CRITICAL OVERLOAD</strong>
+            </div>
+        </div>
+        <div class="vfx-layer vfx-energy-layer">
+            <svg class="energy-hex-svg" viewBox="0 0 600 360" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                    <polygon id="hex-cell" points="30,0 60,17 60,51 30,68 0,51 0,17"/>
+                </defs>
+                <g class="hex-wave wave-0">
+                    <use href="#hex-cell" x="-30" y="-17"/>
+                    <use href="#hex-cell" x="30" y="-17"/>
+                    <use href="#hex-cell" x="90" y="-17"/>
+                    <use href="#hex-cell" x="0" y="34"/>
+                    <use href="#hex-cell" x="60" y="34"/>
+                    <use href="#hex-cell" x="-30" y="85"/>
+                </g>
+                <g class="hex-wave wave-1">
+                    <use href="#hex-cell" x="150" y="-17"/>
+                    <use href="#hex-cell" x="210" y="-17"/>
+                    <use href="#hex-cell" x="120" y="34"/>
+                    <use href="#hex-cell" x="180" y="34"/>
+                    <use href="#hex-cell" x="30" y="85"/>
+                    <use href="#hex-cell" x="90" y="85"/>
+                    <use href="#hex-cell" x="0" y="136"/>
+                    <use href="#hex-cell" x="60" y="136"/>
+                    <use href="#hex-cell" x="-30" y="187"/>
+                </g>
+                <g class="hex-wave wave-2">
+                    <use href="#hex-cell" x="270" y="-17"/>
+                    <use href="#hex-cell" x="330" y="-17"/>
+                    <use href="#hex-cell" x="240" y="34"/>
+                    <use href="#hex-cell" x="300" y="34"/>
+                    <use href="#hex-cell" x="150" y="85"/>
+                    <use href="#hex-cell" x="210" y="85"/>
+                    <use href="#hex-cell" x="120" y="136"/>
+                    <use href="#hex-cell" x="180" y="136"/>
+                    <use href="#hex-cell" x="30" y="187"/>
+                    <use href="#hex-cell" x="90" y="187"/>
+                    <use href="#hex-cell" x="0" y="238"/>
+                    <use href="#hex-cell" x="60" y="238"/>
+                    <use href="#hex-cell" x="-30" y="289"/>
+                </g>
+                <g class="hex-wave wave-3">
+                    <use href="#hex-cell" x="390" y="-17"/>
+                    <use href="#hex-cell" x="450" y="-17"/>
+                    <use href="#hex-cell" x="360" y="34"/>
+                    <use href="#hex-cell" x="420" y="34"/>
+                    <use href="#hex-cell" x="270" y="85"/>
+                    <use href="#hex-cell" x="330" y="85"/>
+                    <use href="#hex-cell" x="240" y="136"/>
+                    <use href="#hex-cell" x="300" y="136"/>
+                    <use href="#hex-cell" x="150" y="187"/>
+                    <use href="#hex-cell" x="210" y="187"/>
+                    <use href="#hex-cell" x="120" y="238"/>
+                    <use href="#hex-cell" x="180" y="238"/>
+                    <use href="#hex-cell" x="30" y="289"/>
+                    <use href="#hex-cell" x="90" y="289"/>
+                    <use href="#hex-cell" x="0" y="340"/>
+                    <use href="#hex-cell" x="60" y="340"/>
+                </g>
+                <g class="hex-wave wave-4">
+                    <use href="#hex-cell" x="510" y="-17"/>
+                    <use href="#hex-cell" x="570" y="-17"/>
+                    <use href="#hex-cell" x="480" y="34"/>
+                    <use href="#hex-cell" x="540" y="34"/>
+                    <use href="#hex-cell" x="390" y="85"/>
+                    <use href="#hex-cell" x="450" y="85"/>
+                    <use href="#hex-cell" x="360" y="136"/>
+                    <use href="#hex-cell" x="420" y="136"/>
+                    <use href="#hex-cell" x="270" y="187"/>
+                    <use href="#hex-cell" x="330" y="187"/>
+                    <use href="#hex-cell" x="240" y="238"/>
+                    <use href="#hex-cell" x="300" y="238"/>
+                    <use href="#hex-cell" x="150" y="289"/>
+                    <use href="#hex-cell" x="210" y="289"/>
+                    <use href="#hex-cell" x="120" y="340"/>
+                    <use href="#hex-cell" x="180" y="340"/>
+                </g>
+                <g class="hex-wave wave-5">
+                    <use href="#hex-cell" x="600" y="34"/>
+                    <use href="#hex-cell" x="510" y="85"/>
+                    <use href="#hex-cell" x="570" y="85"/>
+                    <use href="#hex-cell" x="480" y="136"/>
+                    <use href="#hex-cell" x="540" y="136"/>
+                    <use href="#hex-cell" x="390" y="187"/>
+                    <use href="#hex-cell" x="450" y="187"/>
+                    <use href="#hex-cell" x="360" y="238"/>
+                    <use href="#hex-cell" x="420" y="238"/>
+                    <use href="#hex-cell" x="270" y="289"/>
+                    <use href="#hex-cell" x="330" y="289"/>
+                    <use href="#hex-cell" x="240" y="340"/>
+                    <use href="#hex-cell" x="300" y="340"/>
+                </g>
+                <g class="hex-wave wave-6">
+                    <use href="#hex-cell" x="600" y="136"/>
+                    <use href="#hex-cell" x="510" y="187"/>
+                    <use href="#hex-cell" x="570" y="187"/>
+                    <use href="#hex-cell" x="480" y="238"/>
+                    <use href="#hex-cell" x="540" y="238"/>
+                    <use href="#hex-cell" x="600" y="238"/>
+                    <use href="#hex-cell" x="390" y="289"/>
+                    <use href="#hex-cell" x="450" y="289"/>
+                    <use href="#hex-cell" x="510" y="289"/>
+                    <use href="#hex-cell" x="570" y="289"/>
+                    <use href="#hex-cell" x="360" y="340"/>
+                    <use href="#hex-cell" x="420" y="340"/>
+                    <use href="#hex-cell" x="480" y="340"/>
+                    <use href="#hex-cell" x="540" y="340"/>
+                    <use href="#hex-cell" x="600" y="340"/>
+                </g>
+            </svg>
+        </div>
+        <div class="vfx-layer vfx-quantum-layer">
+            <div class="quantum-dim-bg"></div>
+            <div class="quantum-pulse-wave"></div>
+            <svg class="quantum-lightning-svg" viewBox="0 0 800 500" preserveAspectRatio="none">
+                <polyline class="q-bolt bolt-main-1" points="0,40 140,110 110,165 290,210 250,270 480,310 440,375 650,410 800,470"/>
+                <polyline class="q-bolt bolt-main-2" points="800,25 630,95 670,150 490,220 530,275 310,330 350,385 160,435 0,480"/>
+                <polyline class="q-bolt bolt-sub-1" points="0,250 180,220 220,265 410,235 450,280 620,240 800,265"/>
+                <polyline class="q-bolt bolt-branch" points="290,210 340,130 430,110"/>
+                <polyline class="q-bolt bolt-branch" points="490,220 430,300 380,360"/>
+                <polyline class="q-bolt bolt-branch" points="410,235 460,160 540,145"/>
+            </svg>
+        </div>
+    </div>
+
+    <div id="hud-toast" class="hud-toast" role="alert" aria-live="assertive" hidden>
+        <span class="svg-icon toast-svg" aria-hidden="true"><svg><use href="#icon-alertCircle"></use></svg></span>
+        <span id="hud-toast-text"></span>
+    </div>
+
+    <main id="game-container" class="dialog-panel">
+        <div class="hud-top-bar" aria-hidden="true">
+            <span class="hud-dot"></span>
+            <span class="hud-line"></span>
+            <span class="hud-tag">ORBITAL TACTICAL HUD // VER 4.0</span>
+        </div>
+        <div id="fx-flash-layer" class="fx-flash-layer" aria-hidden="true"></div>
+
+        <section id="screen-name" class="screen active" aria-labelledby="hero-title-text">
+            <h1 class="hero-title" id="hero-title-text">
+                <span class="svg-icon title-icon" aria-hidden="true"><svg><use href="#icon-swords"></use></svg></span>
+                <span>星際戰術：終極對決</span>
+                <span class="svg-icon title-icon" aria-hidden="true"><svg><use href="#icon-shield"></use></svg></span>
+            </h1>
+            <p class="subtitle">登入太空站戰術網路，請輸入你的指揮官識別代號</p>
+            <div class="input-glow-wrapper">
+                <input type="text" id="player-name" class="hud-input" placeholder="輸入識別代號 (預設: 未知指揮官)" maxlength="16" autocomplete="off" autofocus>
+            </div>
+            <div class="screen-footer center">
+                <button type="button" class="btn btn-primary" data-action="submit-name">
+                    <span>啟動戰術終端</span>
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </section>
+
+        <section id="screen-mode-type" class="screen" aria-labelledby="mode-screen-heading">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-mode-type">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>返回</span>
+                </button>
+            </div>
+            <h2 id="mode-screen-heading" class="section-title">
+                <span class="svg-icon header-svg" aria-hidden="true"><svg><use href="#icon-gamepad"></use></svg></span>
+                <span>選擇作戰模式</span>
+            </h2>
+            <div class="mode-options">
+                <button type="button" class="card card-interactive mode-btn" data-action="set-mode" data-mode="pve">
+                    <span class="svg-icon mode-svg" aria-hidden="true"><svg><use href="#icon-robot"></use></svg></span>
+                    <div class="mode-btn-text">
+                        <strong>單機戰術模擬 (PvE)</strong>
+                        <small>自訂 AI 演算強度、戰術職業與科技武裝</small>
+                    </div>
+                </button>
+                <button type="button" class="card card-interactive card-glow-cyan mode-btn" data-action="set-mode" data-mode="pvp_online">
+                    <span class="svg-icon mode-svg" aria-hidden="true"><svg><use href="#icon-globe"></use></svg></span>
+                    <div class="mode-btn-text">
+                        <strong>星際連線對決 (PvP)</strong>
+                        <small>即時量子雲端同步，與真人指揮官跨裝置交鋒</small>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <section id="screen-online-lobby" class="screen" aria-labelledby="lobby-heading">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-online-lobby">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>返回</span>
+                </button>
+            </div>
+            <h2 id="lobby-heading" class="section-title">
+                <span class="svg-icon header-svg" aria-hidden="true"><svg><use href="#icon-globe"></use></svg></span>
+                <span>星際連線大廳</span>
+            </h2>
+            <div class="lobby-box">
+                <button type="button" id="btn-create-room" class="btn btn-secondary btn-create-room" data-action="create-room">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-home"></use></svg></span>
+                    <span>建立新戰術艙 (Host)</span>
+                </button>
+                <div class="card join-room-panel">
+                    <input type="text" id="room-code-input" class="hud-input room-input" inputmode="numeric" pattern="[0-9]*" placeholder="4 碼艙號" maxlength="4" autocomplete="off">
+                    <button type="button" id="btn-join-room" class="btn btn-primary" data-action="join-room">
+                        <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-door"></use></svg></span>
+                        <span>接入戰術艙</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="screen-room-waiting" class="screen" aria-labelledby="waiting-heading">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-room-waiting">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>斷開連線</span>
+                </button>
+            </div>
+            <h2 id="waiting-heading" class="section-title">
+                <span class="svg-icon header-svg spin-slow" aria-hidden="true"><svg><use href="#icon-hourglass"></use></svg></span>
+                <span>等候量子訊號連線</span>
+            </h2>
+            <div class="card card-glow-cyan room-code-card">
+                <p class="room-code-label">戰術艙專屬識別碼</p>
+                <div id="display-room-code" class="room-code-digits">----</div>
+            </div>
+            <div id="room-status-text" class="status-pulse">正在等待挑戰者接入...</div>
+            <div class="screen-footer center">
+                <button type="button" id="btn-start-room-game" class="btn btn-primary btn-lg" style="display: none;" data-action="host-start-game">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-swords"></use></svg></span>
+                    <span>設定局數並啟動對決</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="screen-custom" class="screen" aria-labelledby="custom-setting-title">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-custom">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>返回</span>
+                </button>
+            </div>
+            <h2 id="custom-setting-title" class="section-title">
+                <span class="svg-icon header-svg" aria-hidden="true"><svg><use href="#icon-sliders"></use></svg></span>
+                <span class="header-text">自訂對局參數</span>
+            </h2>
+            <div class="settings-list">
+                <div class="card setting-group">
+                    <label for="custom-target-wins">
+                        <span class="svg-icon setting-svg" aria-hidden="true"><svg><use href="#icon-target"></use></svg></span>
+                        <span>目標勝利數 (5 ~ 100 勝)</span>
+                    </label>
+                    <div class="setting-input-wrap">
+                        <input type="number" id="custom-target-wins" min="5" max="100" value="5" class="hud-input input-number">
+                        <span id="win-error-msg" class="error-tip"></span>
+                    </div>
+                </div>
+                <div id="pve-settings-container" class="settings-sublist">
+                    <div class="card setting-group slider-group">
+                        <label>
+                            <span class="svg-icon setting-svg" aria-hidden="true"><svg><use href="#icon-userShield"></use></svg></span>
+                            <span>AI 職業模組</span>
+                        </label>
+                        <div class="switch-container active" data-action="toggle-switch" data-switch="hasChar" role="switch" aria-checked="true" tabindex="0">
+                            <span class="switch-label">關閉</span>
+                            <div class="switch-track" id="switch-hasChar"><div class="switch-thumb"></div></div>
+                            <span class="switch-label">開啟</span>
+                        </div>
+                    </div>
+                    <div class="card setting-group slider-group">
+                        <label>
+                            <span class="svg-icon setting-svg" aria-hidden="true"><svg><use href="#icon-bag"></use></svg></span>
+                            <span>AI 科技武裝</span>
+                        </label>
+                        <div class="switch-container active" data-action="toggle-switch" data-switch="hasEquip" role="switch" aria-checked="true" tabindex="0">
+                            <span class="switch-label">關閉</span>
+                            <div class="switch-track" id="switch-hasEquip"><div class="switch-thumb"></div></div>
+                            <span class="switch-label">開啟</span>
+                        </div>
+                    </div>
+                    <div class="card setting-group slider-group">
+                        <label>
+                            <span class="svg-icon setting-svg" aria-hidden="true"><svg><use href="#icon-cpu"></use></svg></span>
+                            <span>AI 戰術演算強度</span>
+                        </label>
+                        <div class="switch-container active" data-action="toggle-switch" data-switch="isStrong" role="switch" aria-checked="true" tabindex="0">
+                            <span class="switch-label">基礎</span>
+                            <div class="switch-track" id="switch-isStrong"><div class="switch-thumb"></div></div>
+                            <span class="switch-label">高階</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-footer end">
+                <button type="button" class="btn btn-primary" data-action="confirm-custom">
+                    <span>下一步</span>
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </section>
+
+        <section id="screen-char" class="screen" aria-labelledby="char-screen-title">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-char">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>返回</span>
+                </button>
+            </div>
+            <h2 id="char-screen-title" class="section-title">
+                <span class="svg-icon header-svg" aria-hidden="true"><svg><use href="#icon-shield"></use></svg></span>
+                <span class="header-text">選擇戰術職業</span>
+            </h2>
+            <div id="char-list" class="card-grid grid-chars" role="listbox" aria-label="職業列表"></div>
+            <div class="screen-footer end">
+                <button type="button" id="btn-next-char" class="btn btn-primary" disabled data-action="confirm-char">
+                    <span>下一步</span>
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </section>
+
+        <section id="screen-equip-prefix" class="screen" aria-labelledby="prefix-screen-title">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-equip-prefix">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>返回</span>
+                </button>
+            </div>
+            <h2 id="prefix-screen-title" class="section-title">
+                <span class="svg-icon header-svg" aria-hidden="true"><svg><use href="#icon-bag"></use></svg></span>
+                <span class="header-text">挑選武裝核心系列</span>
+            </h2>
+            <div id="equip-prefix-list" class="card-grid grid-prefixes" role="listbox" aria-label="裝備系列列表"></div>
+            <div class="screen-footer end">
+                <button type="button" id="btn-next-prefix" class="btn btn-primary" disabled data-action="confirm-prefix">
+                    <span>下一步</span>
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowRight"></use></svg></span>
+                </button>
+            </div>
+        </section>
+
+        <section id="screen-equip-detail" class="screen" aria-labelledby="equip-detail-title">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-equip-detail">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>返回</span>
+                </button>
+            </div>
+            <h2 id="equip-detail-title" class="section-title">
+                <span class="svg-icon header-svg" aria-hidden="true"><svg><use href="#icon-swords"></use></svg></span>
+                <span class="header-text">選擇具體科技武裝</span>
+            </h2>
+            <div id="equip-detail-list" class="card-grid grid-equips" role="listbox" aria-label="具體裝備列表"></div>
+            <div class="screen-footer end">
+                <button type="button" id="btn-next-equip" class="btn btn-primary" disabled data-action="confirm-equip">
+                    <span>完成武裝配置</span>
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-check"></use></svg></span>
+                </button>
+            </div>
+        </section>
+
+        <section id="screen-guest-waiting" class="screen" aria-labelledby="guest-wait-heading">
+            <div class="screen-topbar">
+                <button type="button" class="btn btn-ghost btn-back" data-action="go-back" data-from="screen-guest-waiting">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-arrowLeft"></use></svg></span>
+                    <span>離開艙房</span>
+                </button>
+            </div>
+            <h2 id="guest-wait-heading" class="section-title">
+                <span class="svg-icon header-svg spin-slow" aria-hidden="true"><svg><use href="#icon-hourglass"></use></svg></span>
+                <span>等候對手完成武裝配置</span>
+            </h2>
+            <p class="status-pulse waiting-desc">您的戰術配置已鎖定！等待敵方指揮官就緒...</p>
+        </section>
+
+        <section id="screen-countdown" class="screen" aria-labelledby="countdown-heading">
+            <h2 id="countdown-heading" class="countdown-heading">戰術力場同步中</h2>
+            <div class="countdown-stage">
+                <div id="countdown-ring" class="countdown-ring"></div>
+                <div id="countdown-number" class="countdown-display">3</div>
+            </div>
+            <p id="countdown-tip" class="status-pulse">準備迎戰！</p>
+        </section>
+
+        <section id="screen-battle" class="screen" aria-label="戰鬥主畫面">
+            <div class="card scoreboard">
+                <div class="combatant-panel player-panel">
+                    <h3 id="p-name-display" class="combatant-name"></h3>
+                    <div id="p-class-eq" class="class-eq-badge"></div>
+                    <div class="score" id="p-score">0</div>
+                    <div class="win-progress-track">
+                        <div class="win-progress-fill player-fill" id="p-progress-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="vs-badge">
+                    <div class="vs-swords svg-icon" aria-hidden="true"><svg><use href="#icon-swords"></use></svg></div>
+                    <div class="vs-text">VS</div>
+                    <span id="target-win-display" class="target-badge"></span>
+                </div>
+                <div class="combatant-panel enemy-panel">
+                    <h3 id="c-name-display" class="combatant-name"></h3>
+                    <div id="c-class-eq" class="class-eq-badge"></div>
+                    <div class="score" id="c-score">0</div>
+                    <div class="win-progress-track">
+                        <div class="win-progress-fill enemy-fill" id="c-progress-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="battle-arena" id="battle-arena">
+                <div class="action-icon-wrapper" id="p-wrapper">
+                    <div class="aura-ring" id="p-aura"></div>
+                    <div id="p-action" class="action-icon">
+                        <svg><use id="p-action-use" href="#icon-mystery"></use></svg>
+                    </div>
+                </div>
+                <div class="arena-center-flare" id="arena-flare" aria-hidden="true"></div>
+                <div class="action-icon-wrapper" id="c-wrapper">
+                    <div class="aura-ring" id="c-aura"></div>
+                    <div id="c-action" class="action-icon">
+                        <svg><use id="c-action-use" href="#icon-mystery"></use></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pvp-waiting-msg" class="status-pulse pvp-wait-banner" style="display:none;">
+                <span class="svg-icon btn-svg spin-slow" aria-hidden="true"><svg><use href="#icon-hourglass"></use></svg></span>
+                <span>戰術指令已鎖定！等待對手傳輸訊號...</span>
+            </div>
+
+            <div class="action-buttons" id="action-buttons-container">
+                <button type="button" class="btn btn-action" data-action="play-round" data-choice="剪刀">
+                    <span class="svg-icon hand-btn-svg" aria-hidden="true"><svg><use href="#icon-scissors"></use></svg></span>
+                    <span>剪刀</span>
+                </button>
+                <button type="button" class="btn btn-action" data-action="play-round" data-choice="石頭">
+                    <span class="svg-icon hand-btn-svg" aria-hidden="true"><svg><use href="#icon-rock"></use></svg></span>
+                    <span>石頭</span>
+                </button>
+                <button type="button" class="btn btn-action" data-action="play-round" data-choice="布">
+                    <span class="svg-icon hand-btn-svg" aria-hidden="true"><svg><use href="#icon-paper"></use></svg></span>
+                    <span>布</span>
+                </button>
+            </div>
+
+            <div id="battle-log" class="card battle-log" role="log" aria-live="polite"></div>
+        </section>
+
+        <section id="screen-result" class="screen" aria-labelledby="result-title">
+            <div id="result-icon-box" class="result-icon-box">
+                <svg><use id="result-icon-use" href="#icon-trophy"></use></svg>
+            </div>
+            <h1 id="result-title" class="result-title">對局結束</h1>
+            <p id="result-desc" class="result-desc"></p>
+            <div class="screen-footer center">
+                <button type="button" class="btn btn-primary btn-lg" data-action="reset-game">
+                    <span class="svg-icon btn-svg" aria-hidden="true"><svg><use href="#icon-refresh"></use></svg></span>
+                    <span>返回模式選擇</span>
+                </button>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
